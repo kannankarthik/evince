@@ -72,6 +72,7 @@ struct _EvWindowClass {
 
 GType		ev_window_get_type	                 (void) G_GNUC_CONST;
 GtkWidget      *ev_window_new                            (void);
+GtkWidget      *ev_window_new_for_uri                    (void);
 const char     *ev_window_get_uri                        (EvWindow       *ev_window);
 void		ev_window_open_uri	                 (EvWindow       *ev_window,
                                                           const char     *uri,

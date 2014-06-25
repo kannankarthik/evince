@@ -595,7 +595,7 @@ _ev_application_open_uri_at_dest (EvApplication  *application,
 
 	ev_window = ev_application_get_empty_window (application, screen);
 	if (!ev_window)
-		ev_window = EV_WINDOW (ev_window_new ());
+		ev_window = EV_WINDOW (ev_window_new_for_uri ());
 
 	ev_application_open_uri_in_window (application, uri, ev_window,
 					   screen, dest, mode,
