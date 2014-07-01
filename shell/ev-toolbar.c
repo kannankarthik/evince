@@ -1,7 +1,8 @@
 /* ev-toolbar.h
  *  this file is part of evince, a gnome document viewer
  *
- * Copyright (C) 2012 Carlos Garcia Campos <carlosgc@gnome.org>
+ * Copyright (C) 2012-2014 Carlos Garcia Campos <carlosgc@gnome.org>
+ * Copyright (C) 2014 Germán Poo-Caamaño <gpoo@gnome.org>
  *
  * Evince is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by
@@ -48,7 +49,13 @@ struct _EvToolbarPrivate {
         GtkWidget *history_action;
         GtkWidget *zoom_action;
         GtkWidget *page_selector;
+        GtkWidget *navigation_action;
+        GtkWidget *find_button;
+        GtkWidget *recent_view_button;
+        GtkWidget *open_button;
         GMenu *bookmarks_section;
+
+        EvToolbarMode toolbar_mode;
 };
 
 G_DEFINE_TYPE (EvToolbar, ev_toolbar, GTK_TYPE_HEADER_BAR)
@@ -211,8 +218,33 @@ ev_toolbar_constructed (GObject *object)
 
         builder = gtk_builder_new_from_resource ("/org/gnome/evince/shell/ui/menus.ui");
 
+        /* View of recent items */
+        button = ev_toolbar_create_toggle_button (ev_toolbar, "win.recent-view",
+                                                  "view-grid-symbolic",
+                                                  _("Toggle between view of recent items and open document"));
+        ev_toolbar->priv->recent_view_button = button;
+        if (rtl)
+                gtk_widget_set_margin_left (button, 6);
+        else
+                gtk_widget_set_margin_right (button, 6);
+        gtk_container_add (GTK_CONTAINER (ev_toolbar), button);
+        gtk_widget_show (button);
+
+        /* Don't show the open button by detault, only when activated,
+           only when requested explicitly according to the toolbar mode */
+        button = ev_toolbar_create_button (ev_toolbar, "win.open",
+                                           "document-open-symbolic",
+                                           _("Open an existenting document"));
+        ev_toolbar->priv->open_button = button;
+        gtk_container_add (GTK_CONTAINER (ev_toolbar), button);
+        if (rtl)
+                gtk_widget_set_margin_left (button, 6);
+        else
+                gtk_widget_set_margin_right (button, 6);
+
         /* Navigation */
         hbox = ev_toolbar_create_button_group (ev_toolbar);
+        ev_toolbar->priv->navigation_action = hbox;
 
         button = ev_toolbar_create_button (ev_toolbar, "win.go-previous-page",
                                            "go-up-symbolic", _("Previous Page"));
@@ -256,6 +288,7 @@ ev_toolbar_constructed (GObject *object)
         /* Find */
         button = ev_toolbar_create_toggle_button (ev_toolbar, "win.toggle-find", "edit-find-symbolic",
                                                   _("Find a word or phrase in the document"));
+        ev_toolbar->priv->find_button = button;
         if (rtl)
                 gtk_widget_set_margin_left (button, 6);
         else
@@ -310,6 +343,7 @@ ev_toolbar_constructed (GObject *object)
                           ev_toolbar);
         ev_toolbar_setup_bookmarks_menu (ev_toolbar, bookmarks_submenu_model);
 
+        ev_toolbar->priv->toolbar_mode = EV_TOOLBAR_MODE_NORMAL;
         g_object_unref (builder);
 }
 
@@ -392,4 +426,56 @@ ev_toolbar_get_page_selector (EvToolbar *ev_toolbar)
         g_return_val_if_fail (EV_IS_TOOLBAR (ev_toolbar), NULL);
 
         return ev_toolbar->priv->page_selector;
+}
+
+void
+ev_toolbar_set_mode (EvToolbar     *ev_toolbar,
+                     EvToolbarMode  mode)
+{
+        EvToolbarPrivate *priv;
+
+        g_return_if_fail (EV_IS_TOOLBAR (ev_toolbar));
+
+        priv = ev_toolbar->priv;
+
+        if (mode == priv->toolbar_mode)
+                return;
+
+        priv->toolbar_mode = mode;
+
+        switch (mode) {
+        case EV_TOOLBAR_MODE_NORMAL:
+        case EV_TOOLBAR_MODE_FULL_SCREEN:
+        case EV_TOOLBAR_MODE_PRESENTATION:
+        case EV_TOOLBAR_MODE_PREVIEW:
+                gtk_widget_show (priv->view_menu_button);
+                gtk_widget_show (priv->action_menu_button);
+                gtk_widget_show (priv->history_action);
+                gtk_widget_show (priv->zoom_action);
+                gtk_widget_show (priv->page_selector);
+                gtk_widget_show (priv->navigation_action);
+                gtk_widget_show (priv->find_button);
+                gtk_widget_show (priv->recent_view_button);
+                gtk_widget_hide (priv->open_button);
+                break;
+        case EV_TOOLBAR_MODE_RECENT_VIEW:
+                gtk_widget_hide (priv->view_menu_button);
+                gtk_widget_hide (priv->action_menu_button);
+                gtk_widget_hide (priv->history_action);
+                gtk_widget_hide (priv->zoom_action);
+                gtk_widget_hide (priv->page_selector);
+                gtk_widget_hide (priv->navigation_action);
+                gtk_widget_hide (priv->find_button);
+                gtk_widget_show (priv->recent_view_button);
+                gtk_widget_show (priv->open_button);
+                break;
+        }
+}
+	
+EvToolbarMode
+ev_toolbar_get_mode (EvToolbar *ev_toolbar)
+{
+        g_return_val_if_fail (EV_IS_TOOLBAR (ev_toolbar), EV_TOOLBAR_MODE_NORMAL);
+
+        return ev_toolbar->priv->toolbar_mode;
 }
